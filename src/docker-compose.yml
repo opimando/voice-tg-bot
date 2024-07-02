@@ -1,0 +1,15 @@
+﻿services:
+  seq:
+    image: datalust/seq:2023.2
+    hostname: seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - 5413:80
+  voicebot:
+    image: voicebot
+    build:
+      context: .
+      dockerfile: VoiceBot/Dockerfile
+    environment:
+      - TgToken=api
