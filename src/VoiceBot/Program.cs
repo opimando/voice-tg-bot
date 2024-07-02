@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,7 +23,11 @@ await new HostBuilder()
             throw new ArgumentNullException(nameof(settings), "Не удалось получить настройки приложения");
 
         services.AddSingleton<IVoiceRecognizer, CompositeRecognizer>();
-        services.AddTransient<IAudioExecutor, AudioExecutor>();
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            services.AddTransient<IAudioExtractor, AudioExtractor>();
+        else
+            services.AddTransient<IAudioExtractor, FfmpegAudioExtractor>();
 
         services.InitializeBot(settings.TgToken, builder => { builder.WithStates(Assembly.GetExecutingAssembly()); });
         services.AddHostedService<TelegramService>();

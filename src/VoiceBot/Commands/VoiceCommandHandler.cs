@@ -9,6 +9,7 @@
 
 #endregion Copyright
 
+using Microsoft.Extensions.Logging;
 using TgBotFramework.Core;
 using VoiceBot.Services;
 
@@ -19,18 +20,18 @@ public class VoiceCommandHandler : BaseChatState
 {
     private readonly IVoiceRecognizer _voiceRecognizer;
     private readonly IFileProvider _fileProvider;
-    private readonly IAudioExecutor _audioExecutor;
+    private readonly IAudioExtractor _audioExtractor;
 
     public VoiceCommandHandler(
         IVoiceRecognizer voiceRecognizer,
         IFileProvider fileProvider,
-        IAudioExecutor audioExecutor,
+        IAudioExtractor audioExtractor,
         IEventBus eventsBus) :
         base(eventsBus)
     {
         _voiceRecognizer = voiceRecognizer;
         _fileProvider = fileProvider;
-        _audioExecutor = audioExecutor;
+        _audioExtractor = audioExtractor;
     }
 
     protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage, IMessenger messenger)
@@ -123,7 +124,7 @@ public class VoiceCommandHandler : BaseChatState
             await video.Data.CopyToAsync(stream);
         }
 
-        using MemoryStream audio = await _audioExecutor.GetAudio(stream);
+        using MemoryStream audio = await _audioExtractor.GetAudio(stream);
         string text = await _voiceRecognizer.GetText(audio, new VoiceMeta {Type = SourceVoiceType.Wave});
 
         video.Dispose();

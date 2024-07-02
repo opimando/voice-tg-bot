@@ -13,7 +13,10 @@ using NAudio.Wave;
 
 namespace VoiceBot.Services;
 
-public class AudioExecutor : IAudioExecutor
+/// <summary>
+/// Извлекает аудио из видео. Как оказалось только в windows.
+/// </summary>
+public class AudioExtractor : IAudioExtractor
 {
     public async Task<MemoryStream> GetAudio(MemoryStream videoStream)
     {

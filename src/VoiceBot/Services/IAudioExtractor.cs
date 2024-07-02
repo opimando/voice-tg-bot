@@ -11,7 +11,7 @@
 
 namespace VoiceBot.Services;
 
-public interface IAudioExecutor
+public interface IAudioExtractor
 {
     Task<MemoryStream> GetAudio(MemoryStream videoStream);
 }

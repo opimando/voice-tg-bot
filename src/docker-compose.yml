@@ -12,4 +12,4 @@
       context: .
       dockerfile: VoiceBot/Dockerfile
     environment:
-      - TgToken=api
+      - TgToken=apikey
