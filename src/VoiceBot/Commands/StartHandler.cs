@@ -20,14 +20,14 @@ public class StartHandler : BaseChatState
 
     public override StatePriority Priority => StatePriority.Priority;
 
-    public StartHandler(IEventBus eventsBus, IChatStateFactory stateFactory) : base(eventsBus)
+    public StartHandler(IChatStateFactory stateFactory)
     {
         _stateFactory = stateFactory;
     }
 
-    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage, IMessenger messenger)
+    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage)
     {
-        await messenger.Send(receivedMessage.ChatId, "Перешли голосовое сообщение и я попробую его превратить в текст");
+        await Messenger.Send(receivedMessage.ChatId, "Перешли голосовое сообщение и я попробую его превратить в текст");
         return await _stateFactory.CreateState<VoiceCommandHandler>();
     }
 }

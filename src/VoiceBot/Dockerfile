@@ -22,4 +22,5 @@ RUN dotnet publish "VoiceBot.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "VoiceBot.dll"]
+ENTRYPOINT ["dotnet", "VoiceBot.dll"] 
+#voicebot:1.4

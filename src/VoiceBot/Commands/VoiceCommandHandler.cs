@@ -9,7 +9,6 @@
 
 #endregion Copyright
 
-using Microsoft.Extensions.Logging;
 using TgBotFramework.Core;
 using VoiceBot.Services;
 
@@ -25,21 +24,28 @@ public class VoiceCommandHandler : BaseChatState
     public VoiceCommandHandler(
         IVoiceRecognizer voiceRecognizer,
         IFileProvider fileProvider,
-        IAudioExtractor audioExtractor,
-        IEventBus eventsBus) :
-        base(eventsBus)
+        IAudioExtractor audioExtractor)
     {
         _voiceRecognizer = voiceRecognizer;
         _fileProvider = fileProvider;
         _audioExtractor = audioExtractor;
     }
 
-    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage, IMessenger messenger)
+    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage)
+    {
+        (VoiceContent? voice, VideoNoteContent? video) = GetVideo(receivedMessage);
+
+        await ProcessAndReplay(Messenger, receivedMessage.Id, receivedMessage.ChatId, voice, video);
+
+        return this;
+    }
+
+    private (VoiceContent? Voice, VideoNoteContent? Video) GetVideo(Message message)
     {
         VoiceContent? voice = null;
         VideoNoteContent? video = null;
 
-        switch (receivedMessage.Content)
+        switch (message.Content)
         {
             case VoiceContent vContent:
                 voice = vContent;
@@ -47,45 +53,47 @@ public class VoiceCommandHandler : BaseChatState
             case VideoNoteContent vdContent:
                 video = vdContent;
                 break;
-            default:
-                return this;
         }
 
+        return (voice, video);
+    }
+
+    private async Task ProcessAndReplay(IMessenger messenger, MessageId messageId, ChatId chatId, VoiceContent? voice,
+        VideoNoteContent? video)
+    {
         MessageId? infoMessageId = null;
+
         try
         {
-            infoMessageId = await messenger.Send(receivedMessage.ChatId,
+            infoMessageId = await messenger.Send(chatId,
                 new SendInfo(new TextContent("Пробуем расшифровать...")) {HideNotification = true}
             );
 
             string? text = null;
 
             if (voice != null)
-                text = await ProcessAudioMessage(voice, messenger, receivedMessage.ChatId);
+                text = await ProcessAudioMessage(voice, messenger, chatId);
             else if (video != null)
-                text = await ProcessVideoMessage(video, messenger, receivedMessage.ChatId);
+                text = await ProcessVideoMessage(video, messenger, chatId);
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                await messenger.Reply(receivedMessage.ChatId, receivedMessage.Id,
-                    "Сообщение пустое или я ничего не смог понять :(");
-                return this;
+                await messenger.Reply(chatId, messageId, "Сообщение пустое или я ничего не смог понять :(");
+                return;
             }
 
-            await messenger.Reply(receivedMessage.ChatId, receivedMessage.Id, text);
+            await messenger.Reply(chatId, messageId, text);
         }
         catch (Exception ex)
         {
-            await messenger.Send(receivedMessage.ChatId, "Произошла ошибка :(");
+            await messenger.Send(chatId, "Произошла ошибка :(");
             EventsBus.Publish(new ErrorEvent(ex, "Ошибка при парсинге голоса"));
         }
         finally
         {
             if (infoMessageId != null)
-                await messenger.Delete(receivedMessage.ChatId, infoMessageId);
+                await messenger.Delete(chatId, infoMessageId);
         }
-
-        return this;
     }
 
     private async Task<string> ProcessAudioMessage(VoiceContent voice, IMessenger messenger, ChatId chatId)
