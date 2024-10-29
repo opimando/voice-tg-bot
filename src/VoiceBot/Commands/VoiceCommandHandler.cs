@@ -31,13 +31,13 @@ public class VoiceCommandHandler : BaseChatState
         _audioExtractor = audioExtractor;
     }
 
-    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage)
+    protected override async Task<IStateInfo> InternalProcessMessage(Message receivedMessage)
     {
         (VoiceContent? voice, VideoNoteContent? video) = GetVideo(receivedMessage);
 
         await ProcessAndReplay(Messenger, receivedMessage.Id, receivedMessage.ChatId, voice, video);
 
-        return this;
+        return new StateInfo(this);
     }
 
     private (VoiceContent? Voice, VideoNoteContent? Video) GetVideo(Message message)

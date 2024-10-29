@@ -23,4 +23,4 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "VoiceBot.dll"] 
-#voicebot:1.4
+#voicebot:1.5

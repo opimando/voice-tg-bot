@@ -25,9 +25,10 @@ public class StartHandler : BaseChatState
         _stateFactory = stateFactory;
     }
 
-    protected override async Task<IChatState?> InternalProcessMessage(Message receivedMessage)
+    protected override async Task<IStateInfo> InternalProcessMessage(Message receivedMessage)
     {
         await Messenger.Send(receivedMessage.ChatId, "Перешли голосовое сообщение и я попробую его превратить в текст");
-        return await _stateFactory.CreateState<VoiceCommandHandler>();
+        var next = await _stateFactory.CreateState<VoiceCommandHandler>();
+        return new StateInfo(next, ExecutionType.RightNow);
     }
 }
