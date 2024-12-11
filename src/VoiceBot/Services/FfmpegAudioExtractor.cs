@@ -9,19 +9,22 @@
 
 #endregion Copyright
 
+using VoiceBot.Models;
 using Xabe.FFmpeg;
+using AudioStream = VoiceBot.Models.AudioStream;
 
 namespace VoiceBot.Services;
 
 public class FfmpegAudioExtractor : IAudioExtractor
 {
-    public async Task<MemoryStream> GetAudio(MemoryStream videoStream)
+    public async Task<IAudioContent> GetAudio(IVideoContent video)
     {
         string tempInputFileName = Guid.NewGuid() + ".mp4";
         string tempOutputFileName = Guid.NewGuid() + ".wav";
 
         try
         {
+            using MemoryStream videoStream = video.Get();
             videoStream.Seek(0, SeekOrigin.Begin);
 
             await File.WriteAllBytesAsync(tempInputFileName, videoStream.ToArray());
@@ -40,9 +43,8 @@ public class FfmpegAudioExtractor : IAudioExtractor
             await conversion.Start();
 
             byte[] outputAudioBytes = await File.ReadAllBytesAsync(tempOutputFileName);
-            var ret = new MemoryStream(outputAudioBytes);
-            ret.Seek(0, SeekOrigin.Begin);
-            return ret;
+            using var ret = new MemoryStream(outputAudioBytes);
+            return new AudioStream(ret, SourceVoiceType.Wave);
         }
         finally
         {

@@ -9,9 +9,11 @@
 
 #endregion Copyright
 
+using VoiceBot.Models;
+
 namespace VoiceBot.Services;
 
 public interface IAudioExtractor
 {
-    Task<MemoryStream> GetAudio(MemoryStream videoStream);
+    Task<IAudioContent> GetAudio(IVideoContent video);
 }

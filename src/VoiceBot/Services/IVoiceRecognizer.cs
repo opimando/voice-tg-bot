@@ -9,28 +9,11 @@
 
 #endregion Copyright
 
+using VoiceBot.Models;
+
 namespace VoiceBot.Services;
 
 public interface IVoiceRecognizer
 {
-    Task<string> GetText(MemoryStream stream, VoiceMeta meta);
-}
-
-public class VoiceMeta : ICloneable
-{
-    public SourceVoiceType Type { get; set; }
-
-    public object Clone()
-    {
-        return new VoiceMeta
-        {
-            Type = Type
-        };
-    }
-}
-
-public enum SourceVoiceType
-{
-    Ogg,
-    Wave
+    Task<string> GetText(IAudioContent stream);
 }

@@ -10,7 +10,9 @@
 #endregion Copyright
 
 using TgBotFramework.Core;
+using VoiceBot.Models;
 using VoiceBot.Services;
+using VideoContent = VoiceBot.Models.VideoContent;
 
 namespace VoiceBot.Commands;
 
@@ -33,33 +35,28 @@ public class VoiceCommandHandler : BaseChatState
 
     protected override async Task<IStateInfo> InternalProcessMessage(Message receivedMessage)
     {
-        (VoiceContent? voice, VideoNoteContent? video) = GetVideo(receivedMessage);
+        BaseFileContent? content = GetContentWithAudio(receivedMessage);
+        if (content == null)
+            return new StateInfo(this);
 
-        await ProcessAndReplay(Messenger, receivedMessage.Id, receivedMessage.ChatId, voice, video);
+        await ProcessAndReplay(Messenger, receivedMessage.Id, receivedMessage.ChatId, content);
 
         return new StateInfo(this);
     }
 
-    private (VoiceContent? Voice, VideoNoteContent? Video) GetVideo(Message message)
+    private BaseFileContent? GetContentWithAudio(Message message)
     {
-        VoiceContent? voice = null;
-        VideoNoteContent? video = null;
-
-        switch (message.Content)
+        return message.Content switch
         {
-            case VoiceContent vContent:
-                voice = vContent;
-                break;
-            case VideoNoteContent vdContent:
-                video = vdContent;
-                break;
-        }
-
-        return (voice, video);
+            VoiceContent voice => voice,
+            VideoNoteContent video => video,
+            AudioContent audio => audio,
+            _ => null
+        };
     }
 
-    private async Task ProcessAndReplay(IMessenger messenger, MessageId messageId, ChatId chatId, VoiceContent? voice,
-        VideoNoteContent? video)
+    private async Task ProcessAndReplay(IMessenger messenger, MessageId messageId, ChatId chatId,
+        BaseFileContent content)
     {
         MessageId? infoMessageId = null;
 
@@ -71,9 +68,9 @@ public class VoiceCommandHandler : BaseChatState
 
             string? text = null;
 
-            if (voice != null)
-                text = await ProcessAudioMessage(voice, messenger, chatId);
-            else if (video != null)
+            if (content is AudioContent audio)
+                text = await ProcessAudioMessage(audio, messenger, chatId);
+            else if (content is VideoNoteContent video)
                 text = await ProcessVideoMessage(video, messenger, chatId);
 
             if (string.IsNullOrWhiteSpace(text))
@@ -96,24 +93,24 @@ public class VoiceCommandHandler : BaseChatState
         }
     }
 
-    private async Task<string> ProcessAudioMessage(VoiceContent voice, IMessenger messenger, ChatId chatId)
+    private async Task<string> ProcessAudioMessage(AudioContent audio, IMessenger messenger, ChatId chatId)
     {
         using var stream = new MemoryStream();
 
-        if (voice.Data == null)
+        if (audio.Data == null)
         {
-            await using MemoryStream content = await _fileProvider.DownloadFile(voice.FileId);
+            await using MemoryStream content = await _fileProvider.DownloadFile(audio.FileId);
             content.Seek(0, SeekOrigin.Begin);
             await content.CopyToAsync(stream);
         }
         else
         {
-            await voice.Data.CopyToAsync(stream);
+            await audio.Data.CopyToAsync(stream);
         }
 
-        string text = await _voiceRecognizer.GetText(stream, new VoiceMeta {Type = SourceVoiceType.Ogg});
+        string text = await _voiceRecognizer.GetText(new AudioStream(stream, SourceVoiceType.Ogg));
 
-        voice.Dispose();
+        audio.Dispose();
         return text;
     }
 
@@ -132,8 +129,8 @@ public class VoiceCommandHandler : BaseChatState
             await video.Data.CopyToAsync(stream);
         }
 
-        using MemoryStream audio = await _audioExtractor.GetAudio(stream);
-        string text = await _voiceRecognizer.GetText(audio, new VoiceMeta {Type = SourceVoiceType.Wave});
+        IAudioContent audio = await _audioExtractor.GetAudio(new VideoContent(stream));
+        string text = await _voiceRecognizer.GetText(audio);
 
         video.Dispose();
         return text;

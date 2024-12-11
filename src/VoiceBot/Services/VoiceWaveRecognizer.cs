@@ -11,6 +11,7 @@
 
 using NAudio.Wave;
 using Newtonsoft.Json;
+using VoiceBot.Models;
 using Vosk;
 
 namespace VoiceBot.Services;
@@ -19,11 +20,12 @@ public class VoiceWaveRecognizer : IVoiceRecognizer, IDisposable
 {
     private readonly Model _model = new("model");
 
-    public async Task<string> GetText(MemoryStream stream, VoiceMeta meta)
+    public async Task<string> GetText(IAudioContent audio)
     {
-        if (meta.Type is not SourceVoiceType.Wave)
-            throw new ArgumentException($"Не могу распознать тип {meta.Type.ToString()}");
+        if (audio.GetSourceType() is not SourceVoiceType.Wave)
+            throw new ArgumentException($"Не могу распознать тип {audio.GetSourceType().ToString()}");
 
+        using MemoryStream stream = audio.Get();
         stream.Seek(0, SeekOrigin.Begin);
         await using RawSourceWaveStream waveStream = new(stream, new WaveFormat(48000, 1));
         using var rec = new VoskRecognizer(_model, 48000.0f);

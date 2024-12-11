@@ -9,6 +9,8 @@
 
 #endregion Copyright
 
+using VoiceBot.Models;
+
 namespace VoiceBot.Services;
 
 public class CompositeRecognizer : IVoiceRecognizer, IDisposable
@@ -21,13 +23,13 @@ public class CompositeRecognizer : IVoiceRecognizer, IDisposable
         _oggRecognizer = new VoiceOggRecognizer(_waveRecognizer);
     }
 
-    public Task<string> GetText(MemoryStream stream, VoiceMeta meta)
+    public Task<string> GetText(IAudioContent stream)
     {
-        return meta.Type switch
+        return stream.GetSourceType() switch
         {
-            SourceVoiceType.Ogg => _oggRecognizer.GetText(stream, meta),
-            SourceVoiceType.Wave => _waveRecognizer.GetText(stream, meta),
-            _ => throw new ArgumentOutOfRangeException($"Не умею распознавать аудио типа {meta.Type.ToString()}")
+            SourceVoiceType.Ogg => _oggRecognizer.GetText(stream),
+            SourceVoiceType.Wave => _waveRecognizer.GetText(stream),
+            _ => throw new ArgumentOutOfRangeException($"Не умею распознавать аудио типа {stream.GetSourceType().ToString()}")
         };
     }
 

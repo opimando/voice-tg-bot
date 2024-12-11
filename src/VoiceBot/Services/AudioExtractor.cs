@@ -10,6 +10,7 @@
 #endregion Copyright
 
 using NAudio.Wave;
+using VoiceBot.Models;
 
 namespace VoiceBot.Services;
 
@@ -18,8 +19,9 @@ namespace VoiceBot.Services;
 /// </summary>
 public class AudioExtractor : IAudioExtractor
 {
-    public async Task<MemoryStream> GetAudio(MemoryStream videoStream)
+    public async Task<IAudioContent> GetAudio(IVideoContent video)
     {
+        using MemoryStream videoStream = video.Get();
         MemoryStream audioStream = new();
 
         await using StreamMediaFoundationReader mediaReader = new(videoStream);
@@ -32,6 +34,6 @@ public class AudioExtractor : IAudioExtractor
         WaveFileWriter.WriteWavFileToStream(audioStream, mediaReader);
         audioStream.Seek(0, SeekOrigin.Begin);
 
-        return audioStream;
+        return new AudioStream(audioStream, SourceVoiceType.Wave);
     }
 }

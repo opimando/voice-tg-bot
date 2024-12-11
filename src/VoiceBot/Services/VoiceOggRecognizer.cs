@@ -11,6 +11,7 @@
 
 using Concentus;
 using Concentus.Oggfile;
+using VoiceBot.Models;
 
 namespace VoiceBot.Services;
 
@@ -23,22 +24,20 @@ public class VoiceOggRecognizer : IVoiceRecognizer
         _waveRecognizer = waveRecognizer;
     }
 
-    public async Task<string> GetText(MemoryStream stream, VoiceMeta meta)
+    public async Task<string> GetText(IAudioContent audio)
     {
-        if (meta.Type is not SourceVoiceType.Ogg)
-            throw new ArgumentException($"Не могу распознать тип {meta.Type.ToString()}");
+        if (audio.GetSourceType() is not SourceVoiceType.Ogg)
+            throw new ArgumentException($"Не могу распознать тип {audio.GetSourceType().ToString()}");
 
+        using MemoryStream stream = audio.Get();
         stream.Seek(0, SeekOrigin.Begin);
         using IOpusDecoder? decoder = OpusCodecFactory.CreateDecoder(48000, 1);
         OpusOggReadStream oggIn = new(decoder, stream);
-        await using MemoryStream waveStream = ReadWaveStream(oggIn);
-
-        var waveMeta = (VoiceMeta) meta.Clone();
-        waveMeta.Type = SourceVoiceType.Wave;
-        return await _waveRecognizer.GetText(waveStream, waveMeta);
+        IAudioContent waveStream = ReadWaveStream(oggIn);
+        return await _waveRecognizer.GetText(waveStream);
     }
 
-    private MemoryStream ReadWaveStream(OpusOggReadStream stream)
+    private IAudioContent ReadWaveStream(OpusOggReadStream stream)
     {
         var tempStream = new MemoryStream();
         while (stream.HasNextPacket)
@@ -53,6 +52,6 @@ public class VoiceOggRecognizer : IVoiceRecognizer
         }
 
         tempStream.Seek(0, SeekOrigin.Begin);
-        return tempStream;
+        return new AudioStream(tempStream, SourceVoiceType.Wave);
     }
 }
